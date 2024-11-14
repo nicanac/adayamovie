@@ -1,7 +1,10 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, catchError, throwError, map } from 'rxjs';
-import { MovieData, MovieDetails } from '../../../shared/types/tmdb-movie.types';
+import {
+  MovieData,
+  MovieDetails,
+} from '../../../shared/types/tmdb-movie.types';
 import { environment } from '../../../../environments/environment';
 @Injectable({
   providedIn: 'root',
@@ -44,15 +47,19 @@ export class MovieService {
       );
   }
 
-  searchMovies(query: string): Observable<MovieData[]> {
-    return this.http
-      .get<{ results: MovieData[] }>(
-        `${this.baseUrl}/search/movie?api_key=${this.apiKey}&query=${query}`
-      )
-      .pipe(
-        map((response) => response.results),
-        catchError(() => throwError(() => new Error('Error searching movies')))
-      );
+  searchMovies(query: string, providers?: number[]): Observable<MovieData[]> {
+    let url = `${this.baseUrl}/search/movie?api_key=${this.apiKey}&query=${query}`;
+    let country: string = 'BE';
+    if (providers && providers.length > 0) {
+      url += `&watch_region=${country}&with_watch_providers=${providers.join(
+        '|'
+      )}`;
+    }
+
+    return this.http.get<{ results: MovieData[] }>(url).pipe(
+      map((response) => response.results),
+      catchError(() => throwError(() => new Error('Error searching movies')))
+    );
   }
 
   getPopularMovies(): Observable<MovieData[]> {

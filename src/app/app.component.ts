@@ -1,7 +1,8 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterLink } from '@angular/router';
 import { NavComponent } from './shared/components/nav/nav.component';
+import { AuthService } from './core/services/auth.service';
 
 @Component({
   selector: 'app-root',
@@ -33,36 +34,68 @@ import { NavComponent } from './shared/components/nav/nav.component';
                   />
                 </svg>
               </button>
-              <div class="relative">
-                <button 
-                  (click)="toggleUserMenu()"
-                  class="flex items-center space-x-2 hover:bg-gray-100 rounded-lg p-2"
-                >
-                  <img
-                    src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-                    alt="Profile"
-                    class="h-8 w-8 rounded-full"
-                  />
-                  <span class="text-sm font-medium text-gray-700">Tom Cook</span>
-                  <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
+              @if (authService.isAuthenticated()) {
+                <div class="relative">
+                  <button
+                    (click)="toggleUserMenu()"
+                    class="flex items-center space-x-2 hover:bg-gray-100 rounded-lg p-2"
+                  >
+                    <img
+                      [src]="authService.getUserAvatar()"
+                      alt="Profile"
+                      class="h-8 w-8 rounded-full"
+                    />
+                    <span class="text-sm font-medium text-gray-700">
+                      {{ authService.currentUser()?.username }}
+                    </span>
+                    <svg
+                      class="w-4 h-4 text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </button>
 
-                @if (isUserMenuOpen()) {
-                  <div class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1">
-                    <a routerLink="/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                      Your Profile
-                    </a>
-                    <a routerLink="/preferences" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                      Preferences
-                    </a>
-                    <button (click)="signOut()" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                      Sign out
-                    </button>
-                  </div>
-                }
-              </div>
+                  @if (isUserMenuOpen()) {
+                    <div
+                      class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1"
+                    >
+                      <a
+                        routerLink="/profile"
+                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        Your Profile
+                      </a>
+                      <a
+                        routerLink="/preferences"
+                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        Preferences
+                      </a>
+                      <button
+                        (click)="signOut()"
+                        class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        Sign out
+                      </button>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <button
+                  (click)="authService.login()"
+                  class="text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg px-4 py-2"
+                >
+                  Log in
+                </button>
+              }
             </div>
           </div>
         </div>
@@ -76,14 +109,15 @@ import { NavComponent } from './shared/components/nav/nav.component';
   `,
 })
 export class AppComponent {
+  public authService = inject(AuthService);
   isUserMenuOpen = signal(false);
 
   toggleUserMenu() {
-    this.isUserMenuOpen.update(value => !value);
+    this.isUserMenuOpen.update((value) => !value);
   }
 
   signOut() {
     this.isUserMenuOpen.set(false);
-    // Add your signout logic here
+    this.authService.logout();
   }
 }

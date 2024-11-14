@@ -1,9 +1,11 @@
-import { Component, signal, inject } from '@angular/core';
+import { Component, signal, inject, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MovieData } from '../../../../shared/types/movie-data.type';
 import { MovieService } from '../../services/movie.service';
 import { MovieSearchResultsComponent } from '../movie-search-results/movie-search-results.component';
 import { AuthService } from '../../../../core/services/auth.service';
+import { StreamingService } from '../../services/streaming.service';
+import { StreamingProvider } from '../../../../shared/types/streaming.types';
 
 @Component({
   selector: 'app-movie-card',
@@ -89,6 +91,33 @@ import { AuthService } from '../../../../core/services/auth.service';
                 {{ selectedMovie()?.vote_average?.toFixed(1) ?? 'N/A' }}
               </div>
             </div>
+
+            @if (movieStreamingProviders()) {
+            <div class="mt-4">
+              <h3 class="text-sm font-medium text-gray-700 mb-2">
+                Available on:
+              </h3>
+              <div class="flex flex-wrap gap-3">
+                @for (provider of movieStreamingProviders(); track
+                provider.provider_id) {
+                <div
+                  class="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-full"
+                >
+                  <img
+                    [src]="
+                      'https://image.tmdb.org/t/p/original' + provider.logo_path
+                    "
+                    [alt]="provider.provider_name"
+                    class="h-6 w-6 rounded"
+                  />
+                  <span class="text-sm text-gray-600">
+                    {{ provider.provider_name }}
+                  </span>
+                </div>
+                }
+              </div>
+            </div>
+            }
           </div>
         </div>
       </div>
@@ -108,9 +137,19 @@ export class MovieCardComponent {
   error = signal<string | undefined>(undefined);
   public authService = inject(AuthService);
   isFavorite = signal(false);
+  movieStreamingProviders = signal<StreamingProvider[] | null>(null);
+  private streamingService = inject(StreamingService);
 
   constructor(private movieService: MovieService) {
     this.loadPopularMovies();
+    effect(() => {
+      const movie = this.selectedMovie();
+      if (movie) {
+        this.loadStreamingProviders(movie.id);
+      } else {
+        this.movieStreamingProviders.set(null);
+      }
+    });
   }
   searchMovie(query: string) {
     this.isLoading.set(true);
@@ -187,5 +226,21 @@ export class MovieCardComponent {
 
   clearSelectedMovie() {
     this.selectedMovie.set(null);
+  }
+
+  private loadStreamingProviders(movieId: number) {
+    this.streamingService.getMovieAvailability(movieId).subscribe({
+      next: (availability) => {
+        if (availability.results?.['BE']?.flatrate) {
+          this.movieStreamingProviders.set(availability.results['BE'].flatrate);
+        } else {
+          this.movieStreamingProviders.set(null);
+        }
+      },
+      error: (err) => {
+        console.error('Error loading streaming providers:', err);
+        this.movieStreamingProviders.set(null);
+      },
+    });
   }
 }
