@@ -1,0 +1,181 @@
+<div class="flex flex-col items-center min-h-[400px] w-full">
+  <!-- Modal Container -->
+  @if (isVisible()) {
+  <div
+    class="fixed inset-0 z-50 overflow-y-auto"
+    (click)="handleBackdropClick($event)"
+  >
+    <!-- Backdrop -->
+    <div
+      class="fixed inset-0 bg-black bg-opacity-50 transition-opacity modal-backdrop"
+    ></div>
+
+    <!-- Modal Content -->
+    <div class="flex h-full">
+      <div
+        class="w-full max-w-5xl mx-auto card-container relative bg-white shadow-xl modal-content"
+      >
+        <!-- Close button -->
+        @if (pokemonData() && !isLoading()) {
+        <button
+          (click)="closeCard()"
+          class="absolute right-4 top-4 z-20 bg-white rounded-full p-1.5 shadow-lg hover:bg-gray-100 transition-colors duration-200"
+        >
+          <svg
+            class="h-6 w-6 text-gray-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+        }
+
+        <!-- Card Content -->
+        <div class="h-full overflow-y-auto">
+          <div class="card" [class.flipped]="isFlipped()">
+            <!-- Front face -->
+            <div class="card-face front">
+              @if (pokemonData() && !isLoading()) {
+              <div class="flex h-full">
+                <!-- Left Column - Sprites -->
+                <div class="w-1/3 p-6 bg-gray-50 border-r border-gray-200">
+                  <h2 class="text-2xl font-bold text-center mb-6">
+                    {{ pokemonData()!.name | titlecase }}
+                  </h2>
+                  <div class="flex flex-col items-center space-y-4">
+                    <img
+                      [src]="getSpriteSrc('front')"
+                      [alt]="pokemonData()!.name + ' front'"
+                      class="w-48 h-48 cursor-pointer"
+                      (click)="toggleSprite()"
+                    />
+                    <img
+                      [src]="getSpriteSrc('back')"
+                      [alt]="pokemonData()!.name + ' back'"
+                      class="w-48 h-48 cursor-pointer"
+                      (click)="toggleSprite()"
+                    />
+                    <p class="text-center text-sm text-gray-600">
+                      Click to toggle
+                      {{ currentSprite() === "default" ? "shiny" : "normal" }}
+                      sprite
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Right Column - Info -->
+                <div class="w-2/3 p-6">
+                  <!-- Types -->
+                  <div class="mb-6">
+                    <h3 class="font-semibold mb-2">Types</h3>
+                    <app-pokemon-types
+                      [types]="pokemonData()!.types"
+                    ></app-pokemon-types>
+                  </div>
+
+                  <!-- Base Stats -->
+                  <div class="mb-6">
+                    <h3 class="font-semibold mb-2">Base Stats</h3>
+                    <div class="space-y-2">
+                      @for (stat of pokemonData()!.base_stats; track
+                      stat.stat.name) {
+                      <div class="text-sm">
+                        <div class="flex justify-between">
+                          <span>{{ stat.stat.name | titlecase }}:</span>
+                          <span class="font-medium">{{ stat.base_stat }}</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-1.5">
+                          <div
+                            class="bg-blue-600 h-1.5 rounded-full"
+                            [style.width.%]="(stat.base_stat / 255) * 100"
+                          ></div>
+                        </div>
+                      </div>
+                      }
+                    </div>
+                  </div>
+
+                  <!-- Abilities -->
+                  <div class="mt-6">
+                    <h3 class="font-semibold mb-2">Abilities</h3>
+                    <div class="flex flex-wrap gap-2">
+                      @for (ability of pokemonData()!.abilities; track
+                      ability.ability.name) {
+                      <span class="px-3 py-1 bg-gray-100 rounded-full text-sm">
+                        {{ ability.ability.name | titlecase }}
+                      </span>
+                      }
+                    </div>
+                  </div>
+
+                  <!-- Moves -->
+                  <div class="mt-6">
+                    <h3 class="font-semibold mb-2">Moves (First 5)</h3>
+                    <div class="flex flex-wrap gap-2">
+                      @for (move of pokemonData()!.moves.slice(0, 5); track
+                      move.move.name) {
+                      <span class="px-3 py-1 bg-gray-100 rounded-full text-sm">
+                        {{ move.move.name | titlecase }}
+                      </span>
+                      }
+                    </div>
+                  </div>
+
+                  <!-- Footer -->
+                  <div class="mt-6 pt-6 border-t border-gray-200">
+                    <div class="flex justify-between text-sm text-gray-600">
+                      <span>Height: {{ pokemonData()!.height / 10 }}m</span>
+                      <span>Weight: {{ pokemonData()!.weight / 10 }}kg</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              }
+            </div>
+
+            <!-- Back face -->
+            <div class="card-face back">
+              @if (isLoading()) {
+              <div class="bg-white rounded-xl shadow-lg p-8 text-center">
+                <div
+                  class="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"
+                ></div>
+                <p class="mt-4">Loading Pokemon data...</p>
+              </div>
+              } @if (error()) {
+              <div
+                class="bg-white rounded-xl shadow-lg p-8 text-center text-red-600"
+              >
+                <p>{{ error() }}</p>
+                <button
+                  (click)="loadPokemon()"
+                  class="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                >
+                  Retry
+                </button>
+              </div>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  }
+
+  <!-- History table -->
+  <div class="w-full">
+    <app-pokemon-history-table
+      [searchHistory]="searchHistory()"
+      (deleteEntry)="handleDeletePokemon($event)"
+      (reloadEntry)="searchPokemon($event.name)"
+    ></app-pokemon-history-table>
+  </div>
+</div>
