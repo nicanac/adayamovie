@@ -5,11 +5,14 @@ import {
   input,
   output,
   signal,
+  effect,
+  computed,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MovieData } from '../../../../shared/types/movie-data.type';
 import { AuthService } from '../../../../core/services/auth.service';
-
+import { StreamingService } from '../../services/streaming.service';
+import { StreamingProvider } from '../../../../shared/types/streaming.types';
 @Component({
   selector: 'app-movie-search-results',
   standalone: true,
@@ -17,7 +20,7 @@ import { AuthService } from '../../../../core/services/auth.service';
   template: `
     <div class="container mx-auto p-4">
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        @for (movie of movies(); track movie.id) {
+        @for (movie of filteredMovies(); track movie.id) {
         <div
           class="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col transform hover:scale-[1.02]"
         >
@@ -78,6 +81,21 @@ import { AuthService } from '../../../../core/services/auth.service';
             >
               View Details
             </button>
+            @if (movieStreamingProviders()[movie.id]) {
+            <div class="flex flex-wrap gap-2 mt-2">
+              @for (provider of movieStreamingProviders()[movie.id]; track
+              provider.provider_id) {
+              <img
+                [src]="
+                  'https://image.tmdb.org/t/p/original' + provider.logo_path
+                "
+                [alt]="provider.provider_name"
+                class="h-6 w-6 rounded"
+                [title]="provider.provider_name"
+              />
+              }
+            </div>
+            }
           </div>
         </div>
         }
@@ -87,15 +105,34 @@ import { AuthService } from '../../../../core/services/auth.service';
 })
 export class MovieSearchResultsComponent {
   movies = input.required<MovieData[]>();
+  selectedStreamingProvider = input<StreamingProvider | null>();
   selectMovie = output<MovieData>();
 
   public authService = inject(AuthService);
   private favoriteMovies = signal<Set<number>>(new Set());
+  movieStreamingProviders = signal<Record<number, StreamingProvider[]>>({});
+
+  private streamingService = inject(StreamingService);
 
   constructor() {
     if (this.authService.isAuthenticated()) {
       this.loadFavorites();
     }
+    effect(() => {
+      this.movies().forEach((movie) => {
+        this.streamingService.getMovieAvailability(movie.id).subscribe({
+          next: (availability) => {
+            const flatrate = availability.results?.['BE']?.flatrate;
+            if (flatrate && flatrate.length > 0) {
+              this.movieStreamingProviders.update((providers) => ({
+                ...providers,
+                [movie.id]: flatrate,
+              }));
+            }
+          },
+        });
+      });
+    });
   }
 
   private loadFavorites() {
@@ -132,4 +169,20 @@ export class MovieSearchResultsComponent {
       error: (err) => console.error('Error toggling favorite:', err),
     });
   }
+
+  filteredMovies = computed(() => {
+    const selectedProvider = this.selectedStreamingProvider();
+    const movies = this.movies();
+
+    if (!selectedProvider) {
+      return movies;
+    }
+
+    return movies.filter((movie) => {
+      const providers = this.movieStreamingProviders()[movie.id];
+      return providers?.some(
+        (provider) => provider.provider_id === selectedProvider.provider_id
+      );
+    });
+  });
 }

@@ -2,24 +2,11 @@ import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap, throwError, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
-
-interface TMDBSession {
-  success: boolean;
-  session_id: string;
-  expires_at?: string;
-}
-
-interface TMDBRequestToken {
-  success: boolean;
-  expires_at: string;
-  request_token: string;
-}
-
-interface MovieData {
-  id: number;
-  title: string;
-  // Add any other necessary properties here
-}
+import {
+  TMDBSession,
+  TMDBRequestToken,
+} from '../../shared/types/tmdb-auth.types';
+import { MovieData } from '../../shared/types/movie-data.type';
 
 @Injectable({
   providedIn: 'root',
@@ -82,6 +69,19 @@ export class AuthService {
       });
   }
 
+  getUserAvatar(): string {
+    const user = this.currentUser();
+    if (!user) return '';
+
+    if (user.avatar.tmdb.avatar_path) {
+      return `https://image.tmdb.org/t/p/w45${user.avatar.tmdb.avatar_path}`;
+    } else if (user.avatar.gravatar.hash) {
+      return `https://www.gravatar.com/avatar/${user.avatar.gravatar.hash}?s=45`;
+    }
+
+    return 'assets/default-avatar.png'; // Fallback to default avatar
+  }
+
   logout() {
     const sessionId = localStorage.getItem('tmdb_session_id');
     if (sessionId) {
@@ -99,40 +99,51 @@ export class AuthService {
 
   addToFavorites(movieId: number): Observable<any> {
     const sessionId = localStorage.getItem('tmdb_session_id');
-    if (!sessionId || !this.currentUser()) return throwError(() => new Error('Not authenticated'));
+    if (!sessionId || !this.currentUser())
+      return throwError(() => new Error('Not authenticated'));
 
     return this.http.post(
-      `${this.baseUrl}/account/${this.currentUser().id}/favorite?api_key=${environment.tmdbApiKey}&session_id=${sessionId}`,
+      `${this.baseUrl}/account/${this.currentUser().id}/favorite?api_key=${
+        environment.tmdbApiKey
+      }&session_id=${sessionId}`,
       {
         media_type: 'movie',
         media_id: movieId,
-        favorite: true
+        favorite: true,
       }
     );
   }
 
   removeFromFavorites(movieId: number): Observable<any> {
     const sessionId = localStorage.getItem('tmdb_session_id');
-    if (!sessionId || !this.currentUser()) return throwError(() => new Error('Not authenticated'));
+    if (!sessionId || !this.currentUser())
+      return throwError(() => new Error('Not authenticated'));
 
     return this.http.post(
-      `${this.baseUrl}/account/${this.currentUser().id}/favorite?api_key=${environment.tmdbApiKey}&session_id=${sessionId}`,
+      `${this.baseUrl}/account/${this.currentUser().id}/favorite?api_key=${
+        environment.tmdbApiKey
+      }&session_id=${sessionId}`,
       {
         media_type: 'movie',
         media_id: movieId,
-        favorite: false
+        favorite: false,
       }
     );
   }
 
   getFavoriteMovies(): Observable<MovieData[]> {
     const sessionId = localStorage.getItem('tmdb_session_id');
-    if (!sessionId || !this.currentUser()) return throwError(() => new Error('Not authenticated'));
+    if (!sessionId || !this.currentUser())
+      return throwError(() => new Error('Not authenticated'));
 
-    return this.http.get<{ results: MovieData[] }>(
-      `${this.baseUrl}/account/${this.currentUser().id}/favorite/movies?api_key=${environment.tmdbApiKey}&session_id=${sessionId}`
-    ).pipe(
-      map(response => response.results)
-    );
+    return this.http
+      .get<{ results: MovieData[] }>(
+        `${this.baseUrl}/account/${
+          this.currentUser().id
+        }/favorite/movies?api_key=${
+          environment.tmdbApiKey
+        }&session_id=${sessionId}`
+      )
+      .pipe(map((response) => response.results));
   }
 }

@@ -19,7 +19,7 @@ export interface TMDBUser {
       hash: string;
     };
     tmdb?: {
-      avatar_path: string;
+      avatar_path: string | null;
     };
   };
 }
