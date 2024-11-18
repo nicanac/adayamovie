@@ -103,7 +103,6 @@ export class StreamingSelectorComponent {
       error: (err) => {
         this.error.set('Failed to load streaming providers');
         this.loading.set(false);
-        console.error('Error loading providers:', err);
       },
     });
   }
@@ -114,7 +113,6 @@ export class StreamingSelectorComponent {
 
   isSelected(id: number): boolean {
     const result = this.selectedProviders().has(id);
-    console.log(`Checking if ${id} is selected:`, result);
     return result;
   }
 

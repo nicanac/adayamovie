@@ -5,7 +5,7 @@ import { HighlightPipe } from '../../../../shared/pipes/highlight.pipe';
 import { MovieData } from '../../../../shared/types/movie-data.type';
 import { MovieService } from '../../services/movie.service';
 import { StreamingSelectorComponent } from '../streaming/streaming-selector/streaming-selector.component';
-import { StreamingService } from '../../services/streaming.service';
+import { MovieSearchStore } from '../../stores/movie-search.store';
 
 @Component({
   selector: 'app-movie-search',
@@ -19,7 +19,6 @@ import { StreamingService } from '../../services/streaming.service';
   template: `
     <div class="relative w-full">
       <div class="relative w-[600px]">
-        <!-- Changed from w-full -->
         <div class="relative flex items-center gap-4">
           <div class="relative flex-1">
             <div
@@ -41,9 +40,9 @@ import { StreamingService } from '../../services/streaming.service';
             </div>
             <input
               type="text"
-              [ngModel]="searchTerm()"
-              (ngModelChange)="searchTerm.set($event); onSearchChange($event)"
-              (focus)="onInputFocus()"
+              [ngModel]="searchStore.searchTerm()"
+              (ngModelChange)="onSearchTermChange($event)"
+              (focus)="isInputFocused.set(true)"
               (blur)="onInputBlur()"
               (keyup.enter)="search()"
               placeholder="Search movies"
@@ -55,50 +54,52 @@ import { StreamingService } from '../../services/streaming.service';
           />
         </div>
 
-        @if (isInputFocused() && (suggestions().length > 0 ||
-        searchHistory().length > 0)) {
+        @if (isInputFocused() && (searchStore.suggestions().length > 0 ||
+        searchStore.searchHistory().length > 0)) {
         <div
           class="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg"
         >
-          @if (suggestions().length > 0) {
+          @if (searchStore.suggestions().length > 0) {
           <div class="p-3">
             <div class="text-xs text-gray-500 mb-2">Suggestions</div>
             <ul>
-              @for (movie of suggestions(); track movie.id) {
+              @for (movie of searchStore.suggestions(); track movie.id) {
               <li
                 class="px-3 py-2 hover:bg-gray-100 cursor-pointer rounded"
                 (click)="selectMovie(movie)"
               >
                 <span
                   [innerHTML]="
-                    movie.title | titlecase | highlight : searchTerm()
+                    movie.title
+                      | titlecase
+                      | highlight : searchStore.searchTerm()
                   "
                 ></span>
-                <span class="text-sm text-gray-500">
-                  ({{ movie.release_date | date : 'yyyy' }})
-                </span>
+                <span class="text-sm text-gray-500"
+                  >({{ movie.release_date | date : 'yyyy' }})</span
+                >
               </li>
               }
             </ul>
           </div>
-          } @if (searchHistory().length > 0) {
+          } @if (searchStore.searchHistory().length > 0) {
           <div class="p-3 border-t border-gray-100">
             <div class="text-xs text-gray-500 mb-2">Recent searches</div>
             <div class="flex flex-wrap gap-2">
-              @for (item of searchHistory(); track item.title) {
+              @for (movie of searchStore.searchHistory(); track movie.id) {
               <button
-                (click)="selectMovie(item)"
+                (click)="selectMovie(movie)"
                 class="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-full"
               >
-                {{ item.title }}
+                {{ movie.title }}
               </button>
               }
             </div>
           </div>
           }
         </div>
-        } @if (error()) {
-        <p class="text-red-500 text-sm mt-2">{{ error()?.toString() }}</p>
+        } @if (searchStore.error()) {
+        <p class="text-red-500 text-sm mt-2">{{ searchStore.error() }}</p>
         }
       </div>
     </div>
@@ -106,99 +107,42 @@ import { StreamingService } from '../../services/streaming.service';
 })
 export class MovieSearchComponent {
   isLoading = input<boolean>(false);
-  maxSuggestions = 5;
   error = input<string | undefined>(undefined);
-  searchSubmitted = output<string>();
-  errorOccurred = output<string>();
-  selectedProviders = signal<number[]>([]);
+  searchSubmitted = output<MovieData>();
 
-  // Add a local loading signal
-  #loading = signal(false);
-
-  searchTerm = signal('');
-  suggestions = signal<MovieData[]>([]);
   isInputFocused = signal(false);
-  searchHistory = signal<MovieData[]>([]);
+  maxSuggestions = 5;
 
-  constructor(
-    private movieService: MovieService,
-    private streamingService: StreamingService
-  ) {}
+  constructor(protected searchStore: MovieSearchStore) {}
 
-  onSearchChange(term: string) {
-    if (term.length >= 2) {
-      this.#loading.set(true);
-      this.movieService.searchMovies(term).subscribe({
-        next: (movies) => {
-          if (this.selectedProviders().length > 0) {
-            const availabilityPromises = movies.map(movie =>
-              this.streamingService.getMovieAvailability(movie.id).toPromise()
-            );
-
-            Promise.all(availabilityPromises).then(availabilities => {
-              const filteredMovies = movies.filter((movie, index) => {
-                const availability = availabilities[index];
-                if (!availability?.results?.['BE']?.flatrate) return false;
-                
-                const movieProviders = availability.results['BE'].flatrate.map(p => p.provider_id);
-                return this.selectedProviders().some(id => movieProviders.includes(id));
-              });
-
-              const sortedMovies = filteredMovies
-                .sort((a, b) => b.popularity - a.popularity)
-                .slice(0, this.maxSuggestions);
-              
-              this.suggestions.set(sortedMovies);
-              this.#loading.set(false);
-            });
-          } else {
-            const sortedMovies = movies
-              .sort((a, b) => b.popularity - a.popularity)
-              .slice(0, this.maxSuggestions);
-            this.suggestions.set(sortedMovies);
-            this.#loading.set(false);
-          }
-        },
-        error: (err) => {
-          this.suggestions.set([]);
-          this.#loading.set(false);
-          this.errorOccurred.emit(`API Error: ${err.message}`);
-          console.error('Search error:', err);
-        },
-      });
-    } else {
-      this.suggestions.set([]);
-      this.errorOccurred.emit('');
-    }
-  }
-
-  onInputFocus() {
-    this.isInputFocused.set(true);
+  onSearchTermChange(term: string) {
+    this.searchStore.updateSearchTerm(term);
+    this.searchStore.searchMovies(term, this.maxSuggestions);
   }
 
   onInputBlur() {
-    setTimeout(() => this.isInputFocused.set(false), 200);
+    setTimeout(() => {
+      this.isInputFocused.set(false);
+    }, 200);
   }
 
-  search() {
-    if (this.searchTerm().trim()) {
-      this.searchSubmitted.emit(this.searchTerm().trim());
-    }
+  onProvidersChanged(providers: number[]) {
+    this.searchStore.updateSelectedProviders(providers);
   }
 
   selectMovie(movie: MovieData) {
-    this.searchTerm.set(movie.title);
-    if (!this.searchHistory().some((m) => m.id === movie.id)) {
-      this.searchHistory.update((history) => [movie, ...history].slice(0, 5));
-    }
-    this.search();
+    console.log('Selecting movie:', movie);
+    this.searchStore.setSelectedMovie(movie);
+    this.searchStore.searchMovies(movie.title); // This will load all related movies
+    this.isInputFocused.set(false);
+    this.searchSubmitted.emit(movie);
   }
 
-  onProvidersChanged(providerIds: number[]) {
-    console.log('onProvidersChanged', providerIds);
-    this.selectedProviders.set(providerIds);
-    if (this.searchTerm().length >= 2) {
-      this.onSearchChange(this.searchTerm());
+  search() {
+    const term = this.searchStore.searchTerm();
+    if (term.length >= 2) {
+      this.searchStore.searchMovies(term);
+      this.isInputFocused.set(false);
     }
   }
 }

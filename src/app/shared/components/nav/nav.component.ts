@@ -10,7 +10,62 @@ import { RouterLink } from '@angular/router';
     <nav class="fixed left-0 top-0 h-full w-64 bg-[#6366F1] text-white p-4">
       <div class="flex flex-col h-full">
         <div class="mb-8">
-          <img src="assets/logo.svg" alt="Logo" class="h-8 w-8" />
+          <svg
+            width="32"
+            height="32"
+            viewBox="0 0 32 32"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <!-- Background circle -->
+            <circle cx="16" cy="16" r="15" fill="#3B82F6" />
+
+            <!-- Film strip elements -->
+            <rect
+              x="8"
+              y="10"
+              width="16"
+              height="12"
+              fill="white"
+              opacity="0.9"
+            />
+            <rect x="10" y="12" width="2" height="2" fill="#3B82F6" />
+            <rect x="10" y="18" width="2" height="2" fill="#3B82F6" />
+            <rect x="20" y="12" width="2" height="2" fill="#3B82F6" />
+            <rect x="20" y="18" width="2" height="2" fill="#3B82F6" />
+
+            <!-- Magnifying glass -->
+            <circle
+              cx="14"
+              cy="16"
+              r="3"
+              stroke="white"
+              stroke-width="2"
+              fill="none"
+            />
+            <path
+              d="M16.5 18.5L19.5 21.5"
+              stroke="white"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+
+            <!-- Streaming waves -->
+            <path
+              d="M20 14C21.5 14 22.5 15 23 16"
+              stroke="white"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              fill="none"
+            />
+            <path
+              d="M20 16C21 16 21.5 16.5 22 17"
+              stroke="white"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              fill="none"
+            />
+          </svg>
         </div>
 
         <div class="space-y-4 flex-grow">

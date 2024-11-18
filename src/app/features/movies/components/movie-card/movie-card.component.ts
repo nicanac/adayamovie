@@ -1,246 +1,215 @@
-import { Component, signal, inject, effect } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import {
+  Component,
+  signal,
+  inject,
+  effect,
+  Input,
+  Output,
+  EventEmitter,
+} from '@angular/core';
 import { MovieData } from '../../../../shared/types/movie-data.type';
 import { MovieService } from '../../services/movie.service';
-import { MovieSearchResultsComponent } from '../movie-search-results/movie-search-results.component';
-import { AuthService } from '../../../../core/services/auth.service';
 import { StreamingService } from '../../services/streaming.service';
 import { StreamingProvider } from '../../../../shared/types/streaming.types';
+import { forkJoin } from 'rxjs';
+import { CommonModule } from '@angular/common';
+import {
+  animate,
+  style,
+  transition,
+  trigger,
+  query,
+  stagger,
+} from '@angular/animations';
 
+interface ProvidersByType {
+  flatrate: StreamingProvider[];
+  free: StreamingProvider[];
+  buy: StreamingProvider[];
+  rent: StreamingProvider[];
+}
 @Component({
   selector: 'app-movie-card',
   standalone: true,
-  imports: [CommonModule, MovieSearchResultsComponent],
-  template: `
-    <div class="container mx-auto">
-      @if (isLoading()) {
-      <div class="flex justify-center items-center h-64">
-        <div
-          class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"
-        ></div>
-      </div>
-      } @else if (error()) {
-      <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-        <p class="text-red-600">{{ error() }}</p>
-      </div>
-      } @else if (selectedMovie()) {
-      <div class="bg-white rounded-lg shadow-lg p-6">
-        <button
-          (click)="clearSelectedMovie()"
-          class="mb-4 flex items-center text-blue-500 hover:text-blue-600 transition-colors"
-        >
-          <svg
-            class="w-5 h-5 mr-1"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-          Back to Movies
-        </button>
-        <div class="flex flex-col md:flex-row gap-8">
-          @if (selectedMovie()?.backdrop_path) {
-          <img
-            [src]="
-              'https://image.tmdb.org/t/p/w500' + selectedMovie()?.backdrop_path
-            "
-            [alt]="selectedMovie()?.title"
-            class="w-full md:w-1/3 rounded-lg"
-          />
-          }
-          <div class="flex-1">
-            <div class="flex justify-between items-start mb-4">
-              <h2 class="text-3xl font-bold">
-                {{ selectedMovie()?.title }}
-              </h2>
-              @if (authService.isAuthenticated()) {
-              <button
-                (click)="toggleFavorite()"
-                class="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                [class.text-red-500]="isFavorite()"
-                [class.text-gray-400]="!isFavorite()"
-              >
-                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                  <path
-                    d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
-                  />
-                </svg>
-              </button>
-              }
-            </div>
-            <p class="text-gray-600 mb-4">{{ selectedMovie()?.overview }}</p>
-            <div class="flex items-center gap-4 text-sm text-gray-600">
-              <span>{{ selectedMovie()?.release_date | date : 'yyyy' }}</span>
-              <span>•</span>
-              <div class="flex items-center">
-                <svg
-                  class="w-5 h-5 text-yellow-400 mr-1"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
-                  />
-                </svg>
-                {{ selectedMovie()?.vote_average?.toFixed(1) ?? 'N/A' }}
-              </div>
-            </div>
+  providers: [CommonModule],
+  animations: [
+    trigger('cardContent', [
+      transition(':enter', [
+        query(
+          '.animate-item',
+          [
+            style({ opacity: 0, transform: 'translateY(10px)' }),
+            stagger(50, [
+              animate(
+                '300ms ease-out',
+                style({ opacity: 1, transform: 'translateY(0)' })
+              ),
+            ]),
+          ],
+          { optional: true }
+        ),
+      ]),
+    ]),
+  ],
 
-            @if (movieStreamingProviders()) {
-            <div class="mt-4">
-              <h3 class="text-sm font-medium text-gray-700 mb-2">
-                Available on:
-              </h3>
-              <div class="flex flex-wrap gap-3">
-                @for (provider of movieStreamingProviders(); track
+  template: `
+    @if (movie(); as movieDetails) {
+    <div class="space-y-4">
+      <div class="flex gap-6">
+        <img
+          [src]="'https://image.tmdb.org/t/p/w500' + movieDetails.poster_path"
+          [alt]="movieDetails.title"
+          class="w-64 h-96 object-cover rounded-lg"
+        />
+        <div class="flex-1 space-y-4">
+          <h2 class="text-2xl font-bold">{{ movieDetails.title }}</h2>
+          <p class="text-gray-600">{{ movieDetails.overview }}</p>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <p class="text-sm text-gray-500">Release Date</p>
+              <p>{{ movieDetails.release_date }}</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-500">Rating</p>
+              <p>{{ movieDetails.vote_average }}/10</p>
+            </div>
+          </div>
+
+          @if (providers(); as movieProviders) {
+          <div class="mt-4 space-y-4">
+            @if (movieProviders.flatrate.length > 0) {
+            <div>
+              <p class="text-sm text-gray-500 mb-2">Subscription</p>
+              <div class="flex flex-wrap gap-2">
+                @for (provider of movieProviders.flatrate; track
                 provider.provider_id) {
                 <div
-                  class="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-full"
+                  class="flex items-center bg-blue-50 rounded-full px-3 py-1"
                 >
                   <img
                     [src]="
                       'https://image.tmdb.org/t/p/original' + provider.logo_path
                     "
                     [alt]="provider.provider_name"
-                    class="h-6 w-6 rounded"
+                    class="w-6 h-6 rounded-full"
                   />
-                  <span class="text-sm text-gray-600">
-                    {{ provider.provider_name }}
-                  </span>
+                  <span class="ml-2 text-sm">{{ provider.provider_name }}</span>
+                </div>
+                }
+              </div>
+            </div>
+            } @if (movieProviders.free.length > 0) {
+            <div>
+              <p class="text-sm text-gray-500 mb-2">Free</p>
+              <div class="flex flex-wrap gap-2">
+                @for (provider of movieProviders.free; track
+                provider.provider_id) {
+                <div
+                  class="flex items-center bg-green-50 rounded-full px-3 py-1"
+                >
+                  <img
+                    [src]="
+                      'https://image.tmdb.org/t/p/original' + provider.logo_path
+                    "
+                    [alt]="provider.provider_name"
+                    class="w-6 h-6 rounded-full"
+                  />
+                  <span class="ml-2 text-sm">{{ provider.provider_name }}</span>
+                </div>
+                }
+              </div>
+            </div>
+            } @if (movieProviders.rent.length > 0) {
+            <div>
+              <p class="text-sm text-gray-500 mb-2">Rent</p>
+              <div class="flex flex-wrap gap-2">
+                @for (provider of movieProviders.rent; track
+                provider.provider_id) {
+                <div
+                  class="flex items-center bg-orange-50 rounded-full px-3 py-1"
+                >
+                  <img
+                    [src]="
+                      'https://image.tmdb.org/t/p/original' + provider.logo_path
+                    "
+                    [alt]="provider.provider_name"
+                    class="w-6 h-6 rounded-full"
+                  />
+                  <span class="ml-2 text-sm">{{ provider.provider_name }}</span>
+                </div>
+                }
+              </div>
+            </div>
+            } @if (movieProviders.buy.length > 0) {
+            <div>
+              <p class="text-sm text-gray-500 mb-2">Buy</p>
+              <div class="flex flex-wrap gap-2">
+                @for (provider of movieProviders.buy; track
+                provider.provider_id) {
+                <div
+                  class="flex items-center bg-purple-50 rounded-full px-3 py-1"
+                >
+                  <img
+                    [src]="
+                      'https://image.tmdb.org/t/p/original' + provider.logo_path
+                    "
+                    [alt]="provider.provider_name"
+                    class="w-6 h-6 rounded-full"
+                  />
+                  <span class="ml-2 text-sm">{{ provider.provider_name }}</span>
                 </div>
                 }
               </div>
             </div>
             }
           </div>
+          } @else {
+          <p class="text-sm text-gray-500 mt-4">
+            No streaming providers available
+          </p>
+          }
         </div>
       </div>
-      } @else {
-      <app-movie-search-results
-        [movies]="movies()"
-        (selectMovie)="onSelectMovie($event)"
-      />
-      }
     </div>
+    }
   `,
 })
 export class MovieCardComponent {
-  movies = signal<MovieData[]>([]);
-  selectedMovie = signal<MovieData | null>(null);
-  isLoading = signal(false);
-  error = signal<string | undefined>(undefined);
-  public authService = inject(AuthService);
-  isFavorite = signal(false);
-  movieStreamingProviders = signal<StreamingProvider[] | null>(null);
-  private streamingService = inject(StreamingService);
+  @Input({ required: true }) movieId!: number;
+  @Output() close = new EventEmitter<void>();
 
-  constructor(private movieService: MovieService) {
-    this.loadPopularMovies();
-    effect(() => {
-      const movie = this.selectedMovie();
-      if (movie) {
-        this.loadStreamingProviders(movie.id);
-      } else {
-        this.movieStreamingProviders.set(null);
-      }
-    });
-  }
-  searchMovie(query: string) {
-    this.isLoading.set(true);
-    this.movieService.searchMovies(query).subscribe({
-      next: (movies) => {
-        this.movies.set(movies);
-        this.isLoading.set(false);
-        this.error.set(undefined);
-      },
-      error: (err) => {
-        this.error.set(err.message);
-        this.isLoading.set(false);
-      },
-    });
-  }
-  loadPopularMovies() {
-    this.isLoading.set(true);
-    this.movieService.getPopularMovies().subscribe({
-      next: (movies) => {
-        this.movies.set(movies);
-        this.isLoading.set(false);
-      },
-      error: (err) => {
-        this.error.set(err.message);
-        this.isLoading.set(false);
-      },
-    });
+  movie = signal<MovieData | null>(null);
+  providers = signal<ProvidersByType>({
+    flatrate: [],
+    free: [],
+    buy: [],
+    rent: [],
+  });
+
+  constructor(
+    private movieService: MovieService,
+    private streamingService: StreamingService
+  ) {}
+
+  ngOnInit() {
+    this.loadMovieDetails();
   }
 
-  onSelectMovie(movie: MovieData) {
-    this.isLoading.set(true);
-    this.movieService.getMovie(movie.id).subscribe({
-      next: (movieDetails) => {
-        this.selectedMovie.set(movieDetails);
-        this.checkIfFavorite(movieDetails.id);
-        this.isLoading.set(false);
+  private loadMovieDetails() {
+    forkJoin({
+      movieDetails: this.movieService.getMovie(this.movieId),
+      providers: this.streamingService.getMovieAvailability(this.movieId),
+    }).subscribe({
+      next: ({ movieDetails, providers }) => {
+        this.movie.set(movieDetails);
+        this.providers.set({
+          flatrate: providers?.results?.['BE']?.flatrate || [],
+          free: providers?.results?.['BE']?.free || [],
+          buy: providers?.results?.['BE']?.buy || [],
+          rent: providers?.results?.['BE']?.rent || [],
+        });
       },
-      error: (err) => {
-        this.error.set(err.message);
-        this.isLoading.set(false);
-      },
-    });
-  }
-
-  private checkIfFavorite(movieId: number) {
-    if (!this.authService.isAuthenticated()) return;
-
-    this.authService.getFavoriteMovies().subscribe({
-      next: (movies) => {
-        this.isFavorite.set(movies.some((m) => m.id === movieId));
-      },
-      error: (err) => console.error('Error checking favorites:', err),
-    });
-  }
-
-  toggleFavorite() {
-    if (!this.selectedMovie()) return;
-
-    const movieId = this.selectedMovie()!.id;
-    const action = this.isFavorite()
-      ? this.authService.removeFromFavorites(movieId)
-      : this.authService.addToFavorites(movieId);
-
-    action.subscribe({
-      next: () => {
-        this.isFavorite.update((v) => !v);
-      },
-      error: (err) => {
-        console.error('Error toggling favorite:', err);
-        this.error.set('Failed to update favorites');
-      },
-    });
-  }
-
-  clearSelectedMovie() {
-    this.selectedMovie.set(null);
-  }
-
-  private loadStreamingProviders(movieId: number) {
-    this.streamingService.getMovieAvailability(movieId).subscribe({
-      next: (availability) => {
-        if (availability.results?.['BE']?.flatrate) {
-          this.movieStreamingProviders.set(availability.results['BE'].flatrate);
-        } else {
-          this.movieStreamingProviders.set(null);
-        }
-      },
-      error: (err) => {
-        console.error('Error loading streaming providers:', err);
-        this.movieStreamingProviders.set(null);
-      },
+      error: (error) => console.error('Error loading movie details:', error),
     });
   }
 }
