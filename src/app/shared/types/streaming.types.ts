@@ -4,7 +4,9 @@ export interface StreamingProvider {
   logo_path: string;
   display_priority: number;
 }
-
+export interface MovieStreamingProviders {
+  [movieId: number]: StreamingProvider[];
+}
 export interface MovieAvailability {
   id: number;
   results: {
@@ -12,6 +14,7 @@ export interface MovieAvailability {
       flatrate?: StreamingProvider[];
       rent?: StreamingProvider[];
       buy?: StreamingProvider[];
+      free?: StreamingProvider[];
     };
   };
 }
