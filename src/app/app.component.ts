@@ -1,3 +1,4 @@
+import { NavigationService } from './shared/services/navigation.services';
 import { Component, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterLink } from '@angular/router';
@@ -14,10 +15,51 @@ import { AuthService } from './core/services/auth.service';
       <app-nav></app-nav>
 
       <!-- Main Content -->
-      <div class="ml-64">
+      <div
+        [class.ml-64]="navigationService.isNavOpen()"
+        [class.ml-0]="!navigationService.isNavOpen()"
+        class="transition-all duration-300"
+      >
         <!-- Top Bar -->
         <div class="bg-white border-b px-8 py-4">
-          <div class="flex items-center justify-end">
+          <div class="flex items-center justify-between">
+            <!-- Menu Toggle Button -->
+            <button
+              (click)="navigationService.toggleNav()"
+              class="p-2 hover:bg-gray-100 rounded-full transition-colors duration-200"
+            >
+              @if (navigationService.isNavOpen()) {
+                <svg
+                  class="w-6 h-6 text-gray-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              } @else {
+                <svg
+                  class="w-6 h-6 text-gray-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                </svg>
+              }
+            </button>
+
+            <!-- Rest of your existing top bar content -->
             <div class="flex items-center space-x-4">
               <button class="p-2 hover:bg-gray-100 rounded-full">
                 <svg
@@ -35,66 +77,66 @@ import { AuthService } from './core/services/auth.service';
                 </svg>
               </button>
               @if (authService.isAuthenticated()) {
-                <div class="relative">
-                  <button
-                    (click)="toggleUserMenu()"
-                    class="flex items-center space-x-2 hover:bg-gray-100 rounded-lg p-2"
-                  >
-                    <img
-                      [src]="authService.getUserAvatar()"
-                      alt="Profile"
-                      class="h-8 w-8 rounded-full"
-                    />
-                    <span class="text-sm font-medium text-gray-700">
-                      {{ authService.currentUser()?.username }}
-                    </span>
-                    <svg
-                      class="w-4 h-4 text-gray-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
-                  </button>
-
-                  @if (isUserMenuOpen()) {
-                    <div
-                      class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1"
-                    >
-                      <a
-                        routerLink="/profile"
-                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      >
-                        Your Profile
-                      </a>
-                      <a
-                        routerLink="/preferences"
-                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      >
-                        Preferences
-                      </a>
-                      <button
-                        (click)="signOut()"
-                        class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      >
-                        Sign out
-                      </button>
-                    </div>
-                  }
-                </div>
-              } @else {
+              <div class="relative">
                 <button
-                  (click)="authService.login()"
-                  class="text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg px-4 py-2"
+                  (click)="toggleUserMenu()"
+                  class="flex items-center space-x-2 hover:bg-gray-100 rounded-lg p-2"
                 >
-                  Log in
+                  <img
+                    [src]="authService.getUserAvatar()"
+                    alt="Profile"
+                    class="h-8 w-8 rounded-full"
+                  />
+                  <span class="text-sm font-medium text-gray-700">
+                    {{ authService.currentUser()?.username }}
+                  </span>
+                  <svg
+                    class="w-4 h-4 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
                 </button>
+
+                @if (isUserMenuOpen()) {
+                <div
+                  class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1"
+                >
+                  <a
+                    routerLink="/profile"
+                    class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    Your Profile
+                  </a>
+                  <a
+                    routerLink="/preferences"
+                    class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    Preferences
+                  </a>
+                  <button
+                    (click)="signOut()"
+                    class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    Sign out
+                  </button>
+                </div>
+                }
+              </div>
+              } @else {
+              <button
+                (click)="authService.login()"
+                class="text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg px-4 py-2"
+              >
+                Log in
+              </button>
               }
             </div>
           </div>
@@ -111,6 +153,7 @@ import { AuthService } from './core/services/auth.service';
 export class AppComponent {
   public authService = inject(AuthService);
   isUserMenuOpen = signal(false);
+  navigationService = inject(NavigationService);
 
   toggleUserMenu() {
     this.isUserMenuOpen.update((value) => !value);

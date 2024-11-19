@@ -13,6 +13,10 @@ import { MovieData } from '../../shared/types/movie-data.type';
 })
 export class AuthService {
   private readonly baseUrl = 'https://api.themoviedb.org/3';
+  private readonly apiKey = environment.tmdbApiKey;
+  private readonly redirectUrl = environment.production
+    ? 'https://nicanac.github.io/adayamovie//auth/callback'
+    : 'http://localhost:4200/auth/callback';
   isAuthenticated = signal(false);
   currentUser = signal<any>(null);
 
@@ -36,7 +40,8 @@ export class AuthService {
       .pipe(
         tap((response) => {
           if (response.success) {
-            window.location.href = `https://www.themoviedb.org/authenticate/${response.request_token}?redirect_to=${window.location.origin}/auth/callback`;
+            const encodedRedirectUrl = encodeURIComponent(this.redirectUrl);
+            window.location.href = `https://www.themoviedb.org/authenticate/${response.request_token}?redirect_to=${encodedRedirectUrl}`;
           }
         })
       );
@@ -45,7 +50,7 @@ export class AuthService {
   createSession(requestToken: string): Observable<TMDBSession> {
     return this.http
       .post<TMDBSession>(
-        `${this.baseUrl}/authentication/session/new?api_key=${environment.tmdbApiKey}`,
+        `${this.baseUrl}/authentication/session/new?api_key=${this.apiKey}`,
         { request_token: requestToken }
       )
       .pipe(

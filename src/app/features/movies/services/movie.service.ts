@@ -1,6 +1,6 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable, catchError, throwError, map } from 'rxjs';
+import { Observable, catchError, throwError, map, forkJoin } from 'rxjs';
 import {
   MovieData,
   MovieDetails,
@@ -17,7 +17,9 @@ export class MovieService {
 
   getMovie(id: number): Observable<MovieData> {
     return this.http
-      .get<MovieData>(`${this.baseUrl}/movie/${id}?api_key=${this.apiKey}`)
+      .get<MovieData>(
+        `${this.baseUrl}/movie/${id}?api_key=${this.apiKey}&append_to_response=videos`
+      )
       .pipe(
         catchError((error: HttpErrorResponse) => {
           if (error.status === 404) {
@@ -48,7 +50,10 @@ export class MovieService {
   }
 
   searchMovies(query: string, providers?: number[]): Observable<MovieData[]> {
-    let url = `${this.baseUrl}/search/movie?api_key=${this.apiKey}&query=${query}`;
+    let url = `${this.baseUrl}/search/movie?api_key=${
+      this.apiKey
+    }&query=${encodeURIComponent(query)}`;
+
     let country: string = 'BE';
     if (providers && providers.length > 0) {
       url += `&watch_region=${country}&with_watch_providers=${providers.join(
@@ -56,8 +61,37 @@ export class MovieService {
       )}`;
     }
 
-    return this.http.get<{ results: MovieData[] }>(url).pipe(
-      map((response) => response.results),
+    const pages = [1, 2, 3, 4, 5];
+    const pageRequests = pages.map((page) =>
+      this.http
+        .get<{ results: MovieData[] }>(`${url}&page=${page}`)
+        .pipe(map((response) => response.results))
+    );
+
+    return forkJoin(pageRequests).pipe(
+      map((pagesResults) => {
+        const allResults = pagesResults.flat();
+        console.log(
+          'Before sorting:',
+          allResults.map((m) => ({ title: m.title, vote_count: m.vote_count }))
+        );
+
+        const sortedResults = allResults.sort((a, b) => {
+          console.log(
+            `Comparing ${a.title}(${a.vote_count}) with ${b.title}(${b.vote_count})`
+          );
+          return (b.vote_count || 0) - (a.vote_count || 0); // Handle null/undefined vote_counts
+        });
+
+        console.log(
+          'After sorting:',
+          sortedResults.map((m) => ({
+            title: m.title,
+            vote_count: m.vote_count,
+          }))
+        );
+        return sortedResults;
+      }),
       catchError(() => throwError(() => new Error('Error searching movies')))
     );
   }
@@ -73,5 +107,55 @@ export class MovieService {
           throwError(() => new Error('Error fetching popular movies'))
         )
       );
+  }
+
+  discoverMovies(params: any): Observable<MovieData[]> {
+    const searchParams = {
+      api_key: this.apiKey,
+      watch_region: 'BE',
+      with_watch_providers: 'netflix',
+      sort_by: 'popularity.desc',
+      ...params,
+    };
+
+    const pages = [
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+      22, 23, 24, 25, 26,
+    ];
+    const pageRequests = pages.map((page) =>
+      this.http
+        .get<{ results: MovieData[] }>(`${this.baseUrl}/discover/movie`, {
+          params: { ...searchParams, page },
+        })
+        .pipe(map((response) => response.results))
+    );
+
+    return forkJoin(pageRequests).pipe(
+      map((pagesResults) => {
+        const allResults = pagesResults.flat();
+        console.log(
+          'Before sorting:',
+          allResults.map((m) => ({ title: m.title, vote_count: m.vote_count }))
+        );
+
+        const sortedResults = allResults.sort((a, b) => {
+          console.log(
+            `Comparing ${a.title}(${a.vote_count}) with ${b.title}(${b.vote_count})`
+          );
+          return (b.vote_count || 0) - (a.vote_count || 0);
+        });1436
+        
+
+        console.log(
+          'After sorting:',
+          sortedResults.map((m) => ({
+            title: m.title,
+            vote_count: m.vote_count,
+          }))
+        );
+        return sortedResults;
+      }),
+      catchError(() => throwError(() => new Error('Error discovering movies')))
+    );
   }
 }

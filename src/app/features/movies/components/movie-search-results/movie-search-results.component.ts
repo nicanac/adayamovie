@@ -115,7 +115,7 @@ import { animate, style, transition, trigger } from '@angular/animations';
         (click)="closeMovieDetails()"
       >
         <div
-          class="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto m-4"
+          class="bg-white rounded-lg  w-full max-h-[90vh] overflow-y-auto m-4"
           (click)="$event.stopPropagation()"
         >
           <div class="p-4 flex justify-between items-center border-b">

@@ -1,1 +1,199 @@
-<p>movie-card works!</p>
+@if (movie(); as movieDetails) {
+<div class="w-full">
+  <!-- Backdrop Image -->
+  @if (movieDetails.backdrop_path) {
+  <div class="relative w-full h-[400px] mb-8">
+    <img
+      [src]="'https://image.tmdb.org/t/p/original' + movieDetails.backdrop_path"
+      [alt]="movieDetails.title"
+      class="w-full h-full object-cover"
+    />
+    <div
+      class="absolute inset-0 bg-gradient-to-t from-white to-transparent"
+    ></div>
+  </div>
+  }
+
+  <!-- Content -->
+  <div class="container mx-auto px-4">
+    <div class="flex flex-col md:flex-row gap-8">
+      <!-- Poster and Streaming -->
+      <div class="md:w-1/3 lg:w-1/4 flex-shrink-0 space-y-6">
+        <img
+          [src]="'https://image.tmdb.org/t/p/w500' + movieDetails.poster_path"
+          [alt]="movieDetails.title"
+          class="w-full rounded-lg shadow-lg"
+        />
+
+        <!-- Streaming Providers -->
+        @if (providers(); as movieProviders) {
+        <div class="space-y-4">
+          <h3 class="text-xl font-semibold">Where to Watch</h3>
+          @if (movieProviders.flatrate.length > 0) {
+          <div>
+            <p class="text-sm text-gray-500 mb-2">Stream</p>
+            <div class="flex flex-wrap gap-2">
+              @for (provider of movieProviders.flatrate; track
+              provider.provider_id) {
+              <div class="flex items-center bg-blue-50 rounded-full px-4 py-2">
+                <img
+                  [src]="
+                    'https://image.tmdb.org/t/p/original' + provider.logo_path
+                  "
+                  [alt]="provider.provider_name"
+                  class="w-6 h-6 rounded-full"
+                />
+                <span class="ml-2 text-sm font-medium">{{
+                  provider.provider_name
+                }}</span>
+              </div>
+              }
+            </div>
+          </div>
+          } @if (movieProviders.rent.length > 0) {
+          <div>
+            <p class="text-sm text-gray-500 mb-2">Rent</p>
+            <div class="flex flex-wrap gap-2">
+              @for (provider of movieProviders.rent; track provider.provider_id)
+              {
+              <div
+                class="flex items-center bg-orange-50 rounded-full px-4 py-2"
+              >
+                <img
+                  [src]="
+                    'https://image.tmdb.org/t/p/original' + provider.logo_path
+                  "
+                  [alt]="provider.provider_name"
+                  class="w-6 h-6 rounded-full"
+                />
+                <span class="ml-2 text-sm font-medium">{{
+                  provider.provider_name
+                }}</span>
+              </div>
+              }
+            </div>
+          </div>
+          } @if (movieProviders.buy.length > 0) {
+          <div>
+            <p class="text-sm text-gray-500 mb-2">Buy</p>
+            <div class="flex flex-wrap gap-2">
+              @for (provider of movieProviders.buy; track provider.provider_id)
+              {
+              <div
+                class="flex items-center bg-purple-50 rounded-full px-4 py-2"
+              >
+                <img
+                  [src]="
+                    'https://image.tmdb.org/t/p/original' + provider.logo_path
+                  "
+                  [alt]="provider.provider_name"
+                  class="w-6 h-6 rounded-full"
+                />
+                <span class="ml-2 text-sm font-medium">{{
+                  provider.provider_name
+                }}</span>
+              </div>
+              }
+            </div>
+          </div>
+          }
+        </div>
+        } @else {
+        <p class="text-sm text-gray-500">No streaming providers available</p>
+        }
+      </div>
+
+      <!-- Details -->
+      <div class="flex-1 space-y-6">
+        <h2 class="text-3xl font-bold">{{ movieDetails.title }}</h2>
+        <p class="text-gray-600 text-lg">{{ movieDetails.overview }}</p>
+
+        <!-- Genres -->
+        @if (movieDetails.genres?.length) {
+        <div class="flex flex-wrap gap-2">
+          @for (genre of movieDetails.genres; track genre.id) {
+          <span
+            class="px-4 py-1.5 bg-gray-100 rounded-full text-sm font-medium"
+          >
+            {{ genre.name }}
+          </span>
+          }
+        </div>
+        }
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div>
+            <p class="text-sm text-gray-500">Release Date</p>
+            <p class="font-medium">{{ movieDetails.release_date | date }}</p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-500">Rating</p>
+            <p class="font-medium">
+              {{ movieDetails.vote_average | number : "1.1-1" }}/10
+            </p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-500">Vote Count</p>
+            <p class="font-medium">{{ movieDetails.vote_count }}</p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-500">Language</p>
+            <p class="font-medium">
+              {{ movieDetails.original_language | uppercase }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Cast -->
+        @if (movieDetails.credits?.cast?.length) {
+        <div>
+          <h3 class="text-xl font-semibold mb-4">Top Cast</h3>
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+            @for (actor of movieDetails.credits?.cast?.slice(0, 6); track
+            actor?.id) {
+            <div class="flex items-center gap-3 p-2 rounded-lg bg-gray-50">
+              @if (actor.profile_path) {
+              <img
+                [src]="'https://image.tmdb.org/t/p/w45' + actor.profile_path"
+                [alt]="actor.name"
+                class="w-12 h-12 rounded-full object-cover"
+              />
+              } @else {
+              <div
+                class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center"
+              >
+                <span class="text-gray-500 text-lg">{{ actor.name[0] }}</span>
+              </div>
+              }
+              <div class="flex-1 min-w-0">
+                <p class="font-medium truncate">{{ actor.name }}</p>
+                <p class="text-sm text-gray-500 truncate">
+                  {{ actor.character }}
+                </p>
+              </div>
+            </div>
+            }
+          </div>
+        </div>
+        }
+
+        <!-- Trailer -->
+        @if (getOfficialTrailer(movieDetails); as trailer) {
+        <div>
+          <h3 class="text-xl font-semibold mb-4">Official Trailer</h3>
+          <div class="aspect-video">
+            <iframe
+              [src]="getYouTubeEmbedUrl(trailer.key) | safe : 'resourceUrl'"
+              class="w-full h-full rounded-lg"
+              frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen
+            ></iframe>
+          </div>
+        </div>
+        }
+      </div>
+    </div>
+  </div>
+</div>
+}

@@ -3,7 +3,16 @@ export type Genre = {
   name: string;
 };
 
+export type Cast = {
+  id: number;
+  name: string;
+  character: string;
+  profile_path: string | null;
+  order: number;
+};
+
 export type MovieData = {
+  videos: any;
   id: number;
   title: string;
   overview: string;
@@ -18,6 +27,10 @@ export type MovieData = {
   original_title: string;
   genre_ids: number[];
   video: boolean;
+  genres?: Genre[];
+  credits?: {
+    cast: Cast[];
+  };
 };
 
 export type ReviewDetails = {

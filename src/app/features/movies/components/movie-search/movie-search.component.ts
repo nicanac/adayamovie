@@ -6,6 +6,8 @@ import { MovieData } from '../../../../shared/types/movie-data.type';
 import { MovieService } from '../../services/movie.service';
 import { StreamingSelectorComponent } from '../streaming/streaming-selector/streaming-selector.component';
 import { MovieSearchStore } from '../../stores/movie-search.store';
+import { RatingSelectorComponent } from '../rating-selector/rating-selector.component';
+import { MovieSearchResultsComponent } from '../movie-search-results/movie-search-results.component';
 
 @Component({
   selector: 'app-movie-search',
@@ -15,10 +17,12 @@ import { MovieSearchStore } from '../../stores/movie-search.store';
     FormsModule,
     HighlightPipe,
     StreamingSelectorComponent,
+    RatingSelectorComponent,
+    MovieSearchResultsComponent,
   ],
   template: `
     <div class="relative w-full">
-      <div class="relative w-[600px]">
+      <div class="relative">
         <div class="relative flex items-center gap-4">
           <div class="relative flex-1">
             <div
@@ -49,6 +53,9 @@ import { MovieSearchStore } from '../../stores/movie-search.store';
               class="w-full pl-14 pr-4 py-3 border-0 rounded-full bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors duration-200"
             />
           </div>
+          <app-rating-selector
+            (ratingChanged)="searchStore.setRatingThreshold($event)"
+          />
           <app-streaming-selector
             (providersChanged)="onProvidersChanged($event)"
           />
@@ -100,6 +107,8 @@ import { MovieSearchStore } from '../../stores/movie-search.store';
         </div>
         } @if (searchStore.error()) {
         <p class="text-red-500 text-sm mt-2">{{ searchStore.error() }}</p>
+        } @if (searchStore.movies().length > 0) {
+        <app-movie-search-results [movies]="searchStore.movies()" />
         }
       </div>
     </div>
@@ -111,13 +120,17 @@ export class MovieSearchComponent {
   searchSubmitted = output<MovieData>();
 
   isInputFocused = signal(false);
-  maxSuggestions = 5;
+  maxSuggestions = 10;
 
   constructor(protected searchStore: MovieSearchStore) {}
 
+  ngOnInit() {
+    this.searchStore.clearResults();
+  }
+
   onSearchTermChange(term: string) {
     this.searchStore.updateSearchTerm(term);
-    this.searchStore.searchMovies(term, this.maxSuggestions);
+    this.searchStore.searchMovies(term);
   }
 
   onInputBlur() {
@@ -144,5 +157,10 @@ export class MovieSearchComponent {
       this.searchStore.searchMovies(term);
       this.isInputFocused.set(false);
     }
+  }
+
+  onRatingChange(event: Event) {
+    const value = (event.target as HTMLSelectElement).value;
+    this.searchStore.setRatingThreshold(value ? +value : null);
   }
 }

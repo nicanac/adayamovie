@@ -4,6 +4,7 @@ import { MoviePageComponent } from './pages/movies/movie-page.component';
 import { ProfilePageComponent } from './pages/profile/profile-page.component';
 import { PreferencesPageComponent } from './pages/preferences/preferences-page.component';
 import { LoginPageComponent } from './pages/login/login-page.component';
+import { movieRoutes } from './pages/movies/movies.routes';
 
 export const routes: Routes = [
   {
@@ -18,8 +19,7 @@ export const routes: Routes = [
   },
   {
     path: 'movies',
-    component: MoviePageComponent,
-    title: 'Movie Recommendations',
+    loadChildren: () => movieRoutes
   },
   {
     path: 'profile',

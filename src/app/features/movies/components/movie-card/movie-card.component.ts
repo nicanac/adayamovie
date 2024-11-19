@@ -21,6 +21,7 @@ import {
   query,
   stagger,
 } from '@angular/animations';
+import { SafePipe } from '../../../../shared/pipes/safe.pipe';
 
 interface ProvidersByType {
   flatrate: StreamingProvider[];
@@ -28,10 +29,18 @@ interface ProvidersByType {
   buy: StreamingProvider[];
   rent: StreamingProvider[];
 }
+
+interface MovieVideo {
+  key: string;
+  site: string;
+  type: string;
+  official: boolean;
+}
+
 @Component({
   selector: 'app-movie-card',
   standalone: true,
-  providers: [CommonModule],
+  providers: [CommonModule, SafePipe],
   animations: [
     trigger('cardContent', [
       transition(':enter', [
@@ -52,127 +61,8 @@ interface ProvidersByType {
     ]),
   ],
 
-  template: `
-    @if (movie(); as movieDetails) {
-    <div class="space-y-4">
-      <div class="flex gap-6">
-        <img
-          [src]="'https://image.tmdb.org/t/p/w500' + movieDetails.poster_path"
-          [alt]="movieDetails.title"
-          class="w-64 h-96 object-cover rounded-lg"
-        />
-        <div class="flex-1 space-y-4">
-          <h2 class="text-2xl font-bold">{{ movieDetails.title }}</h2>
-          <p class="text-gray-600">{{ movieDetails.overview }}</p>
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <p class="text-sm text-gray-500">Release Date</p>
-              <p>{{ movieDetails.release_date }}</p>
-            </div>
-            <div>
-              <p class="text-sm text-gray-500">Rating</p>
-              <p>{{ movieDetails.vote_average }}/10</p>
-            </div>
-          </div>
-
-          @if (providers(); as movieProviders) {
-          <div class="mt-4 space-y-4">
-            @if (movieProviders.flatrate.length > 0) {
-            <div>
-              <p class="text-sm text-gray-500 mb-2">Subscription</p>
-              <div class="flex flex-wrap gap-2">
-                @for (provider of movieProviders.flatrate; track
-                provider.provider_id) {
-                <div
-                  class="flex items-center bg-blue-50 rounded-full px-3 py-1"
-                >
-                  <img
-                    [src]="
-                      'https://image.tmdb.org/t/p/original' + provider.logo_path
-                    "
-                    [alt]="provider.provider_name"
-                    class="w-6 h-6 rounded-full"
-                  />
-                  <span class="ml-2 text-sm">{{ provider.provider_name }}</span>
-                </div>
-                }
-              </div>
-            </div>
-            } @if (movieProviders.free.length > 0) {
-            <div>
-              <p class="text-sm text-gray-500 mb-2">Free</p>
-              <div class="flex flex-wrap gap-2">
-                @for (provider of movieProviders.free; track
-                provider.provider_id) {
-                <div
-                  class="flex items-center bg-green-50 rounded-full px-3 py-1"
-                >
-                  <img
-                    [src]="
-                      'https://image.tmdb.org/t/p/original' + provider.logo_path
-                    "
-                    [alt]="provider.provider_name"
-                    class="w-6 h-6 rounded-full"
-                  />
-                  <span class="ml-2 text-sm">{{ provider.provider_name }}</span>
-                </div>
-                }
-              </div>
-            </div>
-            } @if (movieProviders.rent.length > 0) {
-            <div>
-              <p class="text-sm text-gray-500 mb-2">Rent</p>
-              <div class="flex flex-wrap gap-2">
-                @for (provider of movieProviders.rent; track
-                provider.provider_id) {
-                <div
-                  class="flex items-center bg-orange-50 rounded-full px-3 py-1"
-                >
-                  <img
-                    [src]="
-                      'https://image.tmdb.org/t/p/original' + provider.logo_path
-                    "
-                    [alt]="provider.provider_name"
-                    class="w-6 h-6 rounded-full"
-                  />
-                  <span class="ml-2 text-sm">{{ provider.provider_name }}</span>
-                </div>
-                }
-              </div>
-            </div>
-            } @if (movieProviders.buy.length > 0) {
-            <div>
-              <p class="text-sm text-gray-500 mb-2">Buy</p>
-              <div class="flex flex-wrap gap-2">
-                @for (provider of movieProviders.buy; track
-                provider.provider_id) {
-                <div
-                  class="flex items-center bg-purple-50 rounded-full px-3 py-1"
-                >
-                  <img
-                    [src]="
-                      'https://image.tmdb.org/t/p/original' + provider.logo_path
-                    "
-                    [alt]="provider.provider_name"
-                    class="w-6 h-6 rounded-full"
-                  />
-                  <span class="ml-2 text-sm">{{ provider.provider_name }}</span>
-                </div>
-                }
-              </div>
-            </div>
-            }
-          </div>
-          } @else {
-          <p class="text-sm text-gray-500 mt-4">
-            No streaming providers available
-          </p>
-          }
-        </div>
-      </div>
-    </div>
-    }
-  `,
+  templateUrl: './movie-card.component.html',
+  imports: [CommonModule, SafePipe],
 })
 export class MovieCardComponent {
   @Input({ required: true }) movieId!: number;
@@ -197,11 +87,11 @@ export class MovieCardComponent {
 
   private loadMovieDetails() {
     forkJoin({
-      movieDetails: this.movieService.getMovie(this.movieId),
+      movieDetails: this.movieService.getMovieDetails(this.movieId),
       providers: this.streamingService.getMovieAvailability(this.movieId),
     }).subscribe({
       next: ({ movieDetails, providers }) => {
-        this.movie.set(movieDetails);
+        this.movie.set(movieDetails as MovieData);
         this.providers.set({
           flatrate: providers?.results?.['BE']?.flatrate || [],
           free: providers?.results?.['BE']?.free || [],
@@ -211,5 +101,31 @@ export class MovieCardComponent {
       },
       error: (error) => console.error('Error loading movie details:', error),
     });
+  }
+
+  public getOfficialTrailer(movie: MovieData): MovieVideo | null {
+    if (!movie.videos?.results) return null;
+
+    // First try to find the official trailer
+    const officialTrailer = movie.videos.results.find(
+      (video: { type: string; official: any; site: string }) =>
+        video.type === 'Trailer' && video.official && video.site === 'YouTube'
+    );
+
+    // If no official trailer, get any trailer
+    if (!officialTrailer) {
+      return (
+        movie.videos.results.find(
+          (video: { type: string; site: string }) =>
+            video.type === 'Trailer' && video.site === 'YouTube'
+        ) || null
+      );
+    }
+
+    return officialTrailer;
+  }
+
+  public getYouTubeEmbedUrl(key: string): string {
+    return `https://www.youtube.com/embed/${key}`;
   }
 }

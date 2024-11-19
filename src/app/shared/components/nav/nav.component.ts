@@ -1,4 +1,5 @@
-import { Component, signal } from '@angular/core';
+import { NavigationService } from './../../services/navigation.services';
+import { Component, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 
@@ -7,7 +8,11 @@ import { RouterLink } from '@angular/router';
   standalone: true,
   imports: [CommonModule, RouterLink],
   template: `
-    <nav class="fixed left-0 top-0 h-full w-64 bg-[#6366F1] text-white p-4">
+    <nav
+      [class.translate-x-0]="navigationService.isNavOpen()"
+      [class.-translate-x-full]="!navigationService.isNavOpen()"
+      class="fixed left-0 top-0 h-full w-64 bg-[#6366F1] text-white p-4 transition-transform duration-300 z-20"
+    >
       <div class="flex flex-col h-full">
         <div class="mb-8">
           <svg
@@ -69,14 +74,6 @@ import { RouterLink } from '@angular/router';
         </div>
 
         <div class="space-y-4 flex-grow">
-          <a
-            routerLink="/pokemon"
-            routerLinkActive="bg-white/20"
-            class="flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-white/10"
-          >
-            <span class="material-icons">catching_pokemon</span>
-            <span>Pokemon</span>
-          </a>
           <a
             routerLink="/movies"
             routerLinkActive="bg-white/20"
@@ -146,9 +143,18 @@ import { RouterLink } from '@angular/router';
         </div>
       </div>
     </nav>
+
+    <!-- Overlay for mobile -->
+    @if (navigationService.isNavOpen()) {
+    <div
+      class="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-10"
+      (click)="navigationService.toggleNav()"
+    ></div>
+    }
   `,
 })
 export class NavComponent {
+  navigationService = inject(NavigationService);
   isUserMenuOpen = signal(false);
   isAuthenticated = signal(false); // Replace with actual auth service
   userName = signal('John Doe'); // Replace with actual user name
