@@ -1,1 +1,0 @@
-import{V as o,db as n,eb as a,mb as p,qb as i}from"./chunk-6XAATWNY.js";var r=class t{static \u0275fac=function(e){return new(e||t)};static \u0275cmp=o({type:t,selectors:[["app-profile-page"]],standalone:!0,features:[i],decls:2,vars:0,template:function(e,s){e&1&&(n(0,"p"),p(1,"profile-page works!"),a())}})};export{r as ProfilePageComponent};
