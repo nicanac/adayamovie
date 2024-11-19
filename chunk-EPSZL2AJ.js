@@ -1,0 +1,1 @@
+import{V as t,db as r,eb as a,mb as o,qb as p}from"./chunk-6XAATWNY.js";var s=class n{static \u0275fac=function(e){return new(e||n)};static \u0275cmp=t({type:n,selectors:[["app-preferences-page"]],standalone:!0,features:[p],decls:2,vars:0,template:function(e,f){e&1&&(r(0,"p"),o(1,"preferences-page works!"),a())}})};export{s as PreferencesPageComponent};
