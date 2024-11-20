@@ -22,7 +22,7 @@ import { AuthService } from '../../../../core/services/auth.service';
       </span>
       <span>{{ isWatched() ? 'Watched' : 'Mark as watched' }}</span>
     </button>
-  `
+  `,
 })
 export class WatchedButtonComponent {
   @Input({ required: true }) movieId!: number;
@@ -42,9 +42,10 @@ export class WatchedButtonComponent {
 
   toggleWatched() {
     if (!this.authService.isAuthenticated()) {
+      console.log('not authenticated');
       return;
     }
-
+    console.log('toggleWatched');
     const sessionId = this.authService.getSessionId();
     if (!sessionId) return;
 
@@ -53,7 +54,8 @@ export class WatchedButtonComponent {
         .removeFromWatched(this.movieId, sessionId)
         .subscribe({
           next: () => this.isWatched.set(false),
-          error: (error) => console.error('Error removing from watched:', error),
+          error: (error) =>
+            console.error('Error removing from watched:', error),
         });
     } else {
       this.watchedMoviesService
@@ -71,10 +73,19 @@ export class WatchedButtonComponent {
 
     this.watchedMoviesService.getWatchedMovies(sessionId).subscribe({
       next: (response) => {
-        const isWatched = response.some(
+        // Access the results array from the response
+        const isWatched = response.results?.some(
           (movie: any) => movie.id === this.movieId
         );
         this.isWatched.set(isWatched);
+        console.log(
+          'Movie ID:',
+          this.movieId,
+          'Is Watched:',
+          isWatched,
+          'Response:',
+          response
+        );
       },
       error: (error) => console.error('Error checking watched status:', error),
     });

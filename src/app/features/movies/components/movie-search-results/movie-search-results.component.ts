@@ -1,3 +1,4 @@
+import { WatchedButtonComponent } from './../watched-button/watched-button.component';
 import { Component, inject, input, signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MovieData } from '../../../../shared/types/movie-data.type';
@@ -31,7 +32,7 @@ import { WatchedMoviesService } from '../../services/watched-movie.service';
       ]),
     ]),
   ],
-  imports: [CommonModule, MovieCardComponent],
+  imports: [CommonModule, MovieCardComponent, WatchedButtonComponent],
 
   template: `
     <div class="space-y-6">
@@ -51,11 +52,16 @@ import { WatchedMoviesService } from '../../services/watched-movie.service';
         <div
           class="bg-white rounded-lg shadow-md overflow-hidden flex flex-col"
         >
-          <img
-            [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path"
-            [alt]="movie.title"
-            class="w-full h-64 object-cover"
-          />
+          <div class="relative">
+            <img
+              [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path"
+              [alt]="movie.title"
+              class="w-full h-64 object-cover"
+            />
+            @if (authService.isAuthenticated()) {
+            <app-watched-button [movieId]="movie.id" />
+            }
+          </div>
           <div class="p-4 flex flex-col flex-grow">
             <h3 class="font-semibold text-lg mb-2">{{ movie.title }}</h3>
             <p class="text-gray-600 text-sm mb-2">
@@ -137,6 +143,7 @@ import { WatchedMoviesService } from '../../services/watched-movie.service';
                   </svg>
                 </button>
               </div>
+
               }
             </div>
             <div class="mt-auto">
