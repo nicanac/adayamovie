@@ -1,6 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap, throwError, map } from 'rxjs';
+import { Observable, tap, throwError, map, BehaviorSubject } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   TMDBSession,
@@ -17,6 +17,9 @@ export class AuthService {
   private readonly redirectUrl = environment.production
     ? 'https://nicanac.github.io/adayamovie//auth/callback'
     : 'http://localhost:4200/auth/callback';
+
+  private sessionId = new BehaviorSubject<string | null>(null);
+  private accountId = new BehaviorSubject<number | null>(null);
   isAuthenticated = signal(false);
   currentUser = signal<any>(null);
 
@@ -118,7 +121,56 @@ export class AuthService {
       }
     );
   }
+  removeFromWatched(movieId: number): Observable<any> {
+    const sessionId = localStorage.getItem('tmdb_session_id');
+    if (!sessionId || !this.currentUser())
+      return throwError(() => new Error('Not authenticated'));
 
+    return this.http.delete(
+      `${environment.tmdbBaseUrl}/movie/${movieId}/rating`,
+      {
+        params: {
+          session_id: sessionId,
+          api_key: environment.tmdbApiKey,
+        },
+      }
+    );
+  }
+  getWatchedMovies(): Observable<any> {
+    const sessionId = localStorage.getItem('tmdb_session_id');
+    if (!sessionId || !this.currentUser())
+      return throwError(() => new Error('Not authenticated'));
+
+    console.log('toggleWatched');
+    return this.http.get(
+      `${environment.tmdbBaseUrl}/account/${!this.currentUser()
+        .id}/rated/movies`,
+      {
+        params: {
+          session_id: sessionId,
+          api_key: environment.tmdbApiKey,
+        },
+      }
+    );
+  }
+  markAsWatched(movieId: number): Observable<any> {
+    const sessionId = localStorage.getItem('tmdb_session_id');
+    if (!sessionId || !this.currentUser())
+      return throwError(() => new Error('Not authenticated'));
+
+    return this.http.post(
+      `${environment.tmdbBaseUrl}/movie/${movieId}/rating`,
+      {
+        value: 1, // We use a rating of 1 to mark as watched
+      },
+      {
+        params: {
+          session_id: sessionId,
+          api_key: environment.tmdbApiKey,
+        },
+      }
+    );
+  }
   removeFromFavorites(movieId: number): Observable<any> {
     const sessionId = localStorage.getItem('tmdb_session_id');
     if (!sessionId || !this.currentUser())
@@ -150,5 +202,21 @@ export class AuthService {
         }&session_id=${sessionId}`
       )
       .pipe(map((response) => response.results));
+  }
+  getSessionId(): string | null {
+    return localStorage.getItem('tmdb_session_id');
+  }
+
+  getAccountId(): number | null | Observable<never> {
+    const sessionId = localStorage.getItem('tmdb_session_id');
+    if (!sessionId || !this.currentUser())
+      return throwError(() => new Error('Not authenticated'));
+
+    const user = this.currentUser();
+    console.log('user is ' + this.currentUser());
+    console.log(
+      'from local storage ' + localStorage.getItem('tmdb_session_id')
+    );
+    return user ? user.id : null;
   }
 }
