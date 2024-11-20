@@ -22,6 +22,8 @@ import {
   stagger,
 } from '@angular/animations';
 import { SafePipe } from '../../../../shared/pipes/safe.pipe';
+import { AuthService } from '../../../../core/services/auth.service';
+import { WatchedButtonComponent } from '../watched-button/watched-button.component';
 
 interface ProvidersByType {
   flatrate: StreamingProvider[];
@@ -62,7 +64,7 @@ interface MovieVideo {
   ],
 
   templateUrl: './movie-card.component.html',
-  imports: [CommonModule, SafePipe],
+  imports: [CommonModule, SafePipe, WatchedButtonComponent],
 })
 export class MovieCardComponent {
   @Input({ required: true }) movieId!: number;

@@ -24,6 +24,9 @@
           [alt]="movieDetails.title"
           class="w-full rounded-lg shadow-lg"
         />
+        <div class="mt-4">
+          <app-watched-button [movieId]="movieId" />
+        </div>
 
         <!-- Streaming Providers -->
         @if (providers(); as movieProviders) {

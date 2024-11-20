@@ -8,6 +8,7 @@ import { StreamingSelectorComponent } from '../streaming/streaming-selector/stre
 import { MovieSearchStore } from '../../stores/movie-search.store';
 import { RatingSelectorComponent } from '../rating-selector/rating-selector.component';
 import { MovieSearchResultsComponent } from '../movie-search-results/movie-search-results.component';
+import { SearchHistoryStore } from '../../stores/search-history.store';
 
 @Component({
   selector: 'app-movie-search',
@@ -62,7 +63,7 @@ import { MovieSearchResultsComponent } from '../movie-search-results/movie-searc
         </div>
 
         @if (isInputFocused() && (searchStore.suggestions().length > 0 ||
-        searchStore.searchHistory().length > 0)) {
+        searchHistoryStore.searchHistory().length > 0)) {
         <div
           class="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg"
         >
@@ -89,11 +90,12 @@ import { MovieSearchResultsComponent } from '../movie-search-results/movie-searc
               }
             </ul>
           </div>
-          } @if (searchStore.searchHistory().length > 0) {
+          } @if (searchHistoryStore.searchHistory().length > 0) {
           <div class="p-3 border-t border-gray-100">
             <div class="text-xs text-gray-500 mb-2">Recent searches</div>
             <div class="flex flex-wrap gap-2">
-              @for (movie of searchStore.searchHistory(); track movie.id) {
+              @for (movie of searchHistoryStore.searchHistory(); track movie.id)
+              {
               <button
                 (click)="selectMovie(movie)"
                 class="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-full"
@@ -122,7 +124,10 @@ export class MovieSearchComponent {
   isInputFocused = signal(false);
   maxSuggestions = 10;
 
-  constructor(protected searchStore: MovieSearchStore) {}
+  constructor(
+    protected searchStore: MovieSearchStore,
+    protected searchHistoryStore: SearchHistoryStore
+  ) {}
 
   ngOnInit() {
     this.searchStore.clearResults();
