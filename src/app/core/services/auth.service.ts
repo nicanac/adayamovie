@@ -136,6 +136,13 @@ export class AuthService {
       }
     );
   }
+  /*************  ✨ Codeium Command ⭐  *************/
+  /**
+   * Fetches the movies that the user has marked as watched.
+   * @returns An observable that emits the response from the API.
+   * @throws An error if the user is not authenticated.
+   */
+  /******  3f10fda8-260f-46f1-8fb6-20809e23c963  *******/
   getWatchedMovies(): Observable<any> {
     const sessionId = localStorage.getItem('tmdb_session_id');
     if (!sessionId || !this.currentUser())
